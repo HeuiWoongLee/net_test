@@ -8,7 +8,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include<iostream>
+
 #define BUFSIZE 1024
 
 void error_handler(const char *msg)
@@ -24,8 +24,8 @@ int main(int argc, char **argv)
 	char message[BUFSIZE];
 	struct sockaddr_in server_addr, client_addr;
 
-	if(argc != 2){
-		printf("Usage : %s <port>\n", argv[0]);
+	if(argc != 2 && (argc != 3 || strcmp(argv[2], "-echo"))){
+		printf("Usage : %s <port> [-echo]\n", argv[0]);
 		exit(1);
 	}
 
@@ -35,9 +35,9 @@ int main(int argc, char **argv)
 		error_handler("Socket error");
 
 	memset(&server_addr, 0, sizeof(server_addr));
-	server_addr.sin_family      = AF_INET;
+	server_addr.sin_family = AF_INET;
 	server_addr.sin_addr.s_addr = htonl(INADDR_ANY);
-	server_addr.sin_port        = htons(atoi(argv[1]));
+	server_addr.sin_port = htons(atoi(argv[1]));
 
 	ret = bind(server_sock, (struct sockaddr *)&server_addr, sizeof(server_addr));
 
@@ -52,6 +52,10 @@ int main(int argc, char **argv)
 		client_sock = accept(server_sock, (struct sockaddr *)&client_addr, (socklen_t*)&client_addr_len);
 
 		if(client_sock == -1) error_handler("Accept error");
+
+		if(argc == 3) write(client_sock, argv[2], strlen(argv[2])+1);
+
+		else write(client_sock, argv[1], strlen(argv[1])+1);
 
 		printf("Connected\n");
 		pid = fork();

@@ -19,7 +19,7 @@ void error_handler(const char *msg)
 int main(int argc, char **argv)
 {
 	int sock, message_len, recv_len, recv_num;
-	char message[BUFSIZE];
+	char message[BUFSIZE], echo_check[6];
 	struct sockaddr_in server_addr;
 
 	if(argc != 3){
@@ -39,6 +39,8 @@ int main(int argc, char **argv)
 	if(connect(sock, (struct sockaddr *)&server_addr, sizeof(server_addr)) == -1)
 		error_handler("Connect error");
 
+	read(sock, echo_check, strlen(echo_check));
+
 	while(1){
 		fputs("Type message ('quit' to exit) : ", stdout);
 		fgets(message, sizeof(message), stdin);
@@ -47,7 +49,10 @@ int main(int argc, char **argv)
 
 		write(sock, message, strlen(message));
  		message_len = read(sock, message, BUFSIZE);
-		printf("Send to server : %s\n", message);
+
+		if(strcmp(echo_check, "-echo") == 0){
+			printf("Send to server : %s\n", message);
+		}
 	}
 
 	close(sock);
