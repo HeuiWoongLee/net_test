@@ -8,6 +8,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <iostream>
 
 #define BUFSIZE 1024
 
@@ -41,9 +42,11 @@ int main(int argc, char **argv)
 
 	ret = bind(server_sock, (struct sockaddr *)&server_addr, sizeof(server_addr));
 
-	if(ret == -1) error_handler("Bind error");
+	if(ret == -1)
+		error_handler("Bind error");
 
-	if(listen(server_sock, 5) == -1) error_handler("Listen error");
+	if(listen(server_sock, 5) == -1)
+		error_handler("Listen error");
 
 	signal(SIGCHLD, SIG_IGN);
 
@@ -51,32 +54,37 @@ int main(int argc, char **argv)
 		client_addr_len = sizeof(client_addr_len);
 		client_sock = accept(server_sock, (struct sockaddr *)&client_addr, (socklen_t*)&client_addr_len);
 
-		if(client_sock == -1) error_handler("Accept error");
-
-		if(argc == 3) write(client_sock, argv[2], strlen(argv[2])+1);
-
-		else write(client_sock, argv[1], strlen(argv[1])+1);
+		if(client_sock == -1)
+			error_handler("Accept error");
 
 		printf("Connected\n");
 		pid = fork();
 
-		if(pid < 0) error_handler("Fork error");
+		if(pid < 0)
+			error_handler("Fork error");
 
-		else if(pid > 0) close(client_sock);
+		else if(pid > 0)
+			close(client_sock);
 
 		else{
 			close(server_sock);
 
 			while(1){
-				for(int i=0; i<=BUFSIZE; i++) message[i] = 0;
+				for(int i=0; i<BUFSIZE; i++)
+					message[i] = 0;
 
 				message_len = read(client_sock, message, BUFSIZE);
-				write(client_sock, message, message_len);
 
 				if(message_len == 0){
 					printf("Disconnected\n");
 					break;
 				}
+
+				if(argc == 3)
+					write(client_sock, message, message_len);
+
+				else
+					write(client_sock, "Send success\n", BUFSIZE);
 
 				printf("Receive Message: %s\n", message);
 			}
@@ -88,6 +96,4 @@ int main(int argc, char **argv)
 	}
 
 	close(server_sock);
-
-	return 0;
 }

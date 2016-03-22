@@ -6,6 +6,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <iostream>
 
 #define BUFSIZE 1024
 
@@ -19,7 +20,7 @@ void error_handler(const char *msg)
 int main(int argc, char **argv)
 {
 	int sock, message_len, recv_len, recv_num;
-	char message[BUFSIZE], echo_check[6];
+	char message[BUFSIZE];
 	struct sockaddr_in server_addr;
 
 	if(argc != 3){
@@ -29,7 +30,8 @@ int main(int argc, char **argv)
 
 	sock = socket(PF_INET, SOCK_STREAM, 0);
 
-	if(sock == -1) error_handler("Socket error");
+	if(sock == -1)
+		error_handler("Socket error");
 
 	memset(&server_addr, 0, sizeof(server_addr));
 	server_addr.sin_family = AF_INET;
@@ -39,23 +41,18 @@ int main(int argc, char **argv)
 	if(connect(sock, (struct sockaddr *)&server_addr, sizeof(server_addr)) == -1)
 		error_handler("Connect error");
 
-	read(sock, echo_check, strlen(echo_check));
-
 	while(1){
 		fputs("Type message ('quit' to exit) : ", stdout);
 		fgets(message, sizeof(message), stdin);
 
-		if(strcmp(message, "quit\n") == 0) break;
+		if(strcmp(message, "quit\n") == 0)
+			break;
 
 		write(sock, message, strlen(message));
- 		message_len = read(sock, message, BUFSIZE);
+		read(sock, message, BUFSIZE);
 
-		if(strcmp(echo_check, "-echo") == 0){
-			printf("Send to server : %s\n", message);
-		}
+		std::cout<<message<<std::endl;
 	}
 
 	close(sock);
-
-	return 0;
 }
