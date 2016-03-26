@@ -12,7 +12,7 @@
 
 typedef struct thread_value
 {
-	int echo, sock;
+	int echo, sock, turn;
 }thread_value;
 
 void error_handler(const char *msg)
@@ -23,14 +23,21 @@ void error_handler(const char *msg)
 
 void *server_handler(void *arg)
 {
-	pthread_detach(pthread_self());
-	std::cout<<"Connected"<<std::endl;
-
 	thread_value* ret = (thread_value*)arg;
 	int message_len;
 	int check_echo = ret -> echo;
 	int client_sock = ret -> sock;
-	char message[BUFSIZE];
+	int order = ret -> turn;
+	char message[BUFSIZE], rank[2];
+
+	switch(order){
+		case 1: {char rank[] = "st"; break;}
+		case 2:	{char rank[] = "nd"; break;}
+		case 3: {char rank[] = "rd"; break;}
+		default: {char rank[] = "th"; break;}
+	}
+
+	std::cout<<order<<rank<<" client Connected"<<std::endl;
 
 	while(1){
 		for(int i=0; i<BUFSIZE; i++) message[i] = 0;
@@ -38,14 +45,14 @@ void *server_handler(void *arg)
 		message_len = read(client_sock, message, BUFSIZE);
 
 		if(message_len == 0){
-			std::cout<<"Disconnected\n"<<std::endl;
+			std::cout<<order<<rank<<" client Disconnected\n"<<std::endl;
 			break;
 		}
 
 		if(check_echo == 3) write(client_sock, message, message_len);
 
-		std::cout<<"Receive Message : "<<message<<std::endl;
-		}
+		std::cout<<order<<rank<<" client Message : "<<message<<std::endl;
+	}
 
 	close(client_sock);
 
@@ -57,6 +64,7 @@ int main(int argc, char **argv)
 	int server_sock, client_sock, client_addr_len, status;
 	thread_value thread_data;
 	thread_data.echo = argc;
+	thread_data.turn = 0;
 	struct sockaddr_in server_addr, client_addr;
 	pthread_t server_threads;
 
@@ -85,12 +93,15 @@ int main(int argc, char **argv)
 		client_addr_len = sizeof(client_addr_len);
 		client_sock = accept(server_sock, (struct sockaddr *)&client_addr, (socklen_t*)&client_addr_len);
 
-		thread_data.sock = client_sock;
-
 		if(client_sock == -1)
 			error_handler("Accept error");
+std::cout<<server_threads;
+		thread_data.turn++;
+		thread_data.sock = client_sock;
+		if(pthread_create(&server_threads, NULL, server_handler, (void*)&thread_data) < 0)
+			error_handler("Thread error");
 
-		pthread_create(&server_threads, NULL, server_handler, (void*)&thread_data);
+		pthread_detach(server_threads);
 	}
 
 	close(server_sock);

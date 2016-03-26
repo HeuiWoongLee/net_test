@@ -16,8 +16,6 @@ void error_handler(const char *msg)
 
 void *client_handler(void *arg)
 {
-	pthread_detach(pthread_self());
-
 	int sock = *(int*)arg;
 	char thread_message[BUFSIZE];
 
@@ -25,12 +23,11 @@ void *client_handler(void *arg)
 
 	read(sock, thread_message, BUFSIZE);
 	std::cout<<"Send to Server : "<<thread_message<<std::endl<<std::endl;
-
 }
 
 int main(int argc, char **argv)
 {
-	int sock;
+	int sock, status;
 	char message[BUFSIZE];
 	struct sockaddr_in server_addr;
 	pthread_t client_threads;
@@ -61,8 +58,11 @@ int main(int argc, char **argv)
 			break;
 
 		write(sock, message, strlen(message));
-		pthread_create(&client_threads, NULL, client_handler, (void*)&sock);
-		usleep(10000);
+
+		if(pthread_create(&client_threads, NULL, client_handler, (void*)&sock) < 0)
+			error_handler("Thread error");
+
+		pthread_detach(client_threads);
 	}
 
 	close(sock);
