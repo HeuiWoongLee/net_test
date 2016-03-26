@@ -1,27 +1,39 @@
-#include <sys/types.h>
-#include <fcntl.h>
-#include <arpa/inet.h>
-#include <sys/socket.h>
-#include <unistd.h>
-#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <unistd.h>
+#include <sys/types.h>
+#include <sys/socket.h>
+#include <arpa/inet.h>
 #include <iostream>
 
 #define BUFSIZE 1024
 
 void error_handler(const char *msg)
 {
-	fputs(msg, stderr);
-	fputc('\n', stderr);
+	std::cout<<msg<<std::endl;
 	exit(1);
+}
+
+void *client_handler(void *arg)
+{
+	pthread_detach(pthread_self());
+
+	int sock = *(int*)arg;
+	char thread_message[BUFSIZE];
+
+	for(int i=0; i<BUFSIZE; i++) thread_message[i] = 0;
+
+	read(sock, thread_message, BUFSIZE);
+	std::cout<<"Send to Server : "<<thread_message<<std::endl<<std::endl;
+
 }
 
 int main(int argc, char **argv)
 {
-	int sock, message_len, recv_len, recv_num;
+	int sock;
 	char message[BUFSIZE];
 	struct sockaddr_in server_addr;
+	pthread_t client_threads;
 
 	if(argc != 3){
 		std::cout<<"Usage : "<<argv[0]<<" <IP> <port>"<<std::endl;
@@ -49,9 +61,8 @@ int main(int argc, char **argv)
 			break;
 
 		write(sock, message, strlen(message));
-		read(sock, message, BUFSIZE);
-
-		std::cout<<message<<std::endl;
+		pthread_create(&client_threads, NULL, client_handler, (void*)&sock);
+		usleep(10000);
 	}
 
 	close(sock);
