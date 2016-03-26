@@ -23,6 +23,8 @@ void *client_handler(void *arg)
 
 	read(sock, thread_message, BUFSIZE);
 	std::cout<<"Send to Server : "<<thread_message<<std::endl<<std::endl;
+	sleep(10);
+	pthread_exit(NULL);
 }
 
 int main(int argc, char **argv)

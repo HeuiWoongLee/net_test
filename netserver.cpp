@@ -95,7 +95,7 @@ int main(int argc, char **argv)
 
 		if(client_sock == -1)
 			error_handler("Accept error");
-std::cout<<server_threads;
+
 		thread_data.turn++;
 		thread_data.sock = client_sock;
 		if(pthread_create(&server_threads, NULL, server_handler, (void*)&thread_data) < 0)
