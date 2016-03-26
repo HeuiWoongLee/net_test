@@ -24,7 +24,7 @@ int main(int argc, char **argv)
 	struct sockaddr_in server_addr;
 
 	if(argc != 3){
-		printf("Usage : %s <IP> <port>\n", argv[0]);
+		std::cout<<"Usage : "<<argv[0]<<" <IP> <port>"<<std::endl;
 		exit(1);
 	}
 
@@ -42,10 +42,10 @@ int main(int argc, char **argv)
 		error_handler("Connect error");
 
 	while(1){
-		fputs("Type message ('quit' to exit) : ", stdout);
-		fgets(message, sizeof(message), stdin);
+		std::cout<<"Type message ('quit' to exit) : ";
+		std::cin>>message;
 
-		if(strcmp(message, "quit\n") == 0)
+		if(strcmp(message, "quit") == 0)
 			break;
 
 		write(sock, message, strlen(message));
