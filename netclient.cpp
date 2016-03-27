@@ -4,9 +4,14 @@
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <arpa/inet.h>
+#include <pthread.h>
+#include <semaphore.h>
 #include <iostream>
 
 #define BUFSIZE 1024
+int count = 0;
+
+sem_t sem_thread;
 
 void error_handler(const char *msg)
 {
@@ -17,19 +22,26 @@ void error_handler(const char *msg)
 void *client_handler(void *arg)
 {
 	int sock = *(int*)arg;
+	int sem_count;
 	char thread_message[BUFSIZE];
 
-	for(int i=0; i<BUFSIZE; i++) thread_message[i] = 0;
+	sem_wait(&sem_thread);
+	sem_count = count;
+	sem_count += 1;
+	count = sem_count;
+
+	for(int i = 0; i < BUFSIZE; i++) thread_message[i] = 0;
 
 	read(sock, thread_message, BUFSIZE);
 	std::cout<<"Send to Server : "<<thread_message<<std::endl<<std::endl;
+	sem_post(&sem_thread);
 	sleep(10);
 	pthread_exit(NULL);
 }
 
 int main(int argc, char **argv)
 {
-	int sock, status;
+	int sock, thread_id;
 	char message[BUFSIZE];
 	struct sockaddr_in server_addr;
 	pthread_t client_threads;
@@ -60,6 +72,9 @@ int main(int argc, char **argv)
 			break;
 
 		write(sock, message, strlen(message));
+
+		if(sem_init(&sem_thread, 0, 1) == -1)
+			error_handler("Semaphore error");
 
 		if(pthread_create(&client_threads, NULL, client_handler, (void*)&sock) < 0)
 			error_handler("Thread error");
