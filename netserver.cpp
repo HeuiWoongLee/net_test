@@ -10,7 +10,6 @@
 #include <iostream>
 
 #define BUFSIZE 1024
-int count = 0;
 
 sem_t sem_thread;
 
@@ -28,7 +27,7 @@ void error_handler(const char *msg)
 void *server_handler(void *arg)
 {
 	thread_value* ret = (thread_value*)arg;
-	int message_len, sem_count;
+	int message_len;
 	int check_echo = ret -> echo;
 	int client_sock = ret -> sock;
 	int order = ret -> turn;
@@ -44,10 +43,7 @@ void *server_handler(void *arg)
 	std::cout<<order<<rank<<" client Connected"<<std::endl;
 
 	while(1){
-		sem_wait(&sem_thread);
-		sem_count = count;
-		sem_count += 1;
-		count = sem_count;
+		sem_post(&sem_thread);
 
 		for(int i=0; i<BUFSIZE; i++) message[i] = 0;
 
@@ -61,7 +57,7 @@ void *server_handler(void *arg)
 		if(check_echo == 3) write(client_sock, message, message_len);
 
 		std::cout<<order<<rank<<" client Message : "<<message<<std::endl;
-		sem_post(&sem_thread);
+		sem_wait(&sem_thread);
 	}
 
 	close(client_sock);
@@ -71,7 +67,7 @@ void *server_handler(void *arg)
 
 int main(int argc, char **argv)
 {
-	int server_sock, client_sock, client_addr_len, thread_id;
+	int server_sock, client_sock, client_addr_len;
 	thread_value thread_data;
 	thread_data.echo = argc;
 	thread_data.turn = 0;
@@ -109,13 +105,14 @@ int main(int argc, char **argv)
 		thread_data.turn++;
 		thread_data.sock = client_sock;
 
-		if(sem_init(&sem_thread, 0, 1) == -1)
+		if(sem_init(&sem_thread, 0, 0) == -1)
 			error_handler("Semaphore error");
 
 		if(pthread_create(&server_threads, NULL, server_handler, (void*)&thread_data) < 0)
 			error_handler("Thread error");
 
 		pthread_detach(server_threads);
+		sem_destroy(&sem_thread);
 	}
 
 	close(server_sock);

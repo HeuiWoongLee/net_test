@@ -9,7 +9,6 @@
 #include <iostream>
 
 #define BUFSIZE 1024
-int count = 0;
 
 sem_t sem_thread;
 
@@ -22,19 +21,15 @@ void error_handler(const char *msg)
 void *client_handler(void *arg)
 {
 	int sock = *(int*)arg;
-	int sem_count;
 	char thread_message[BUFSIZE];
 
-	sem_wait(&sem_thread);
-	sem_count = count;
-	sem_count += 1;
-	count = sem_count;
+	sem_post(&sem_thread);
 
 	for(int i = 0; i < BUFSIZE; i++) thread_message[i] = 0;
 
 	read(sock, thread_message, BUFSIZE);
 	std::cout<<"Send to Server : "<<thread_message<<std::endl<<std::endl;
-	sem_post(&sem_thread);
+	sem_wait(&sem_thread);
 	sleep(10);
 	pthread_exit(NULL);
 }
@@ -80,6 +75,7 @@ int main(int argc, char **argv)
 			error_handler("Thread error");
 
 		pthread_detach(client_threads);
+		sem_destroy(&sem_thread);
 	}
 
 	close(sock);
