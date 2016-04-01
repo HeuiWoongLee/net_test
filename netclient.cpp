@@ -5,35 +5,31 @@
 #include <sys/socket.h>
 #include <arpa/inet.h>
 #include <pthread.h>
-#include <semaphore.h>
 #include <iostream>
 
 #define BUFSIZE 1024
-
-sem_t sem_thread;
 
 void error_handler(const char *msg)
 {
 	std::cout<<msg<<std::endl;
 	exit(1);
 }
-
+ 
 void *client_handler(void *arg)
 {
+	int check;
 	int sock = *(int*)arg;
 	char thread_message[BUFSIZE];
 
-	sem_post(&sem_thread);
+	while(1){
+		check = read(sock, thread_message, BUFSIZE);
 
-	for(int i = 0; i < BUFSIZE; i++) thread_message[i] = 0;
+		if(check == 0) break;
 
-	read(sock, thread_message, BUFSIZE);
-	std::cout<<"Send to Server : "<<thread_message<<std::endl<<std::endl;
-	sem_wait(&sem_thread);
-	sleep(10);
-	pthread_exit(NULL);
+		std::cout<<"Send to Server : "<<thread_message<<std::endl<<std::endl;
+	}
 }
-
+ 
 int main(int argc, char **argv)
 {
 	int sock, thread_id;
@@ -59,24 +55,24 @@ int main(int argc, char **argv)
 	if(connect(sock, (struct sockaddr *)&server_addr, sizeof(server_addr)) == -1)
 		error_handler("Connect error");
 
+	if(pthread_create(&client_threads, NULL, client_handler, (void*)&sock) < 0)
+		error_handler("Thread error");
+
 	while(1){
+		usleep(1000);
+
+		for(int i=0; i<BUFSIZE; i++) message[i] = 0;
+
 		std::cout<<"Type message ('quit' to exit) : ";
 		std::cin>>message;
 
-		if(strcmp(message, "quit") == 0)
-			break;
+		write(sock, message, strlen(message)+1);
 
-		write(sock, message, strlen(message));
-
-		if(sem_init(&sem_thread, 0, 1) == -1)
-			error_handler("Semaphore error");
-
-		if(pthread_create(&client_threads, NULL, client_handler, (void*)&sock) < 0)
-			error_handler("Thread error");
-
-		pthread_detach(client_threads);
-		sem_destroy(&sem_thread);
+		if(strcmp(message, "quit") == 0) break;
 	}
 
 	close(sock);
+
+	pthread_detach(client_threads);
 }
+

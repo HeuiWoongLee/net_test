@@ -6,12 +6,9 @@
 #include <netinet/in.h>
 #include <arpa/inet.h>
 #include <pthread.h>
-#include <semaphore.h>
 #include <iostream>
 
 #define BUFSIZE 1024
-
-sem_t sem_thread;
 
 typedef struct thread_value
 {
@@ -31,20 +28,19 @@ void *server_handler(void *arg)
 	int check_echo = ret -> echo;
 	int client_sock = ret -> sock;
 	int order = ret -> turn;
-	char message[BUFSIZE], rank[2];
+	char message[BUFSIZE];
+	const char *rank;
 
 	switch(order){
-		case 1: {char rank[] = "st"; break;}
-		case 2:	{char rank[] = "nd"; break;}
-		case 3: {char rank[] = "rd"; break;}
-		default: {char rank[] = "th"; break;}
+		case 1: {rank = "st"; break;}
+		case 2:	{rank = "nd"; break;}
+		case 3: {rank = "rd"; break;}
+		default: {rank = "th"; break;}
 	}
 
 	std::cout<<order<<rank<<" client Connected"<<std::endl;
 
 	while(1){
-		sem_post(&sem_thread);
-
 		for(int i=0; i<BUFSIZE; i++) message[i] = 0;
 
 		message_len = read(client_sock, message, BUFSIZE);
@@ -54,10 +50,9 @@ void *server_handler(void *arg)
 			break;
 		}
 
-		if(check_echo == 3) write(client_sock, message, message_len);
+		if(check_echo == 3) write(client_sock, message, message_len+1);
 
 		std::cout<<order<<rank<<" client Message : "<<message<<std::endl;
-		sem_wait(&sem_thread);
 	}
 
 	close(client_sock);
@@ -105,17 +100,14 @@ int main(int argc, char **argv)
 		thread_data.turn++;
 		thread_data.sock = client_sock;
 
-		if(sem_init(&sem_thread, 0, 0) == -1)
-			error_handler("Semaphore error");
-
 		if(pthread_create(&server_threads, NULL, server_handler, (void*)&thread_data) < 0)
 			error_handler("Thread error");
 
 		pthread_detach(server_threads);
-		sem_destroy(&sem_thread);
 	}
 
 	close(server_sock);
 
 	return 0;
 }
+
